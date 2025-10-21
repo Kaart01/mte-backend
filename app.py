@@ -8,9 +8,8 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY")
-AIRTABLE_API_URL = os.getenv("AIRTABLE_API_URL")
-
+AIRTABLE_API_KEY = os.environ.get("AIRTABLE_API_KEY", "").strip('"').strip("'")
+AIRTABLE_API_URL = os.environ.get("AIRTABLE_API_URL", "").strip('"').strip("'")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # folder where app.py is located
 
 DB_FILE = os.path.join(BASE_DIR, "my_database.db")
@@ -211,7 +210,8 @@ def calculate_mte():
 if __name__ == "__main__":
     setup_database()
     sync_airtable_to_db()  # optional
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
 
 print("EXCEL_FILE path:", EXCEL_FILE)
 print("File exists:", os.path.exists(EXCEL_FILE))

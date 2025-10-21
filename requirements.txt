@@ -1,6 +1,8 @@
-flask
-flask-cors
-pandas
-requests
-python-dotenv
-openpyxl
+gunicorn==20.1.0
+flask==3.1.2
+flask-cors==6.0.1
+pandas==2.3.3
+requests==2.32.5
+python-dotenv==1.1.1
+openpyxl==3.1.5
+numpy==2.3.4

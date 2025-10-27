@@ -1,10 +1,12 @@
 {
   "name": "MTE Calculator",
   "short_name": "MTE",
+  "description": "An offline-ready web app to calculate MTE values for elevator components.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4CAF50",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icons/frame1-192.png",
@@ -18,17 +20,3 @@
     }
   ]
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

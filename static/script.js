@@ -1,4 +1,4 @@
-const baseURL = "https://mte-backend.onrender.com";
+const baseURL = "https://mte-backend-v2.onrender.com";
 
 document.addEventListener("DOMContentLoaded", () => {
   const moduleInput = document.getElementById("moduleInput");

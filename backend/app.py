@@ -13,7 +13,7 @@ AIRTABLE_API_URL = os.environ.get("AIRTABLE_API_URL")
 
 # ------------------ Paths ------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "my_database.db")
+DB_FILE = os.path.join(BASE_DIR, "mte_data.db")
 EXCEL_FILE = os.path.join(BASE_DIR, "database.xlsx")
 
 # ------------------ Flask App ------------------
@@ -33,22 +33,34 @@ def query_db(query, args=(), one=False):
     conn.close()
     return (rows[0] if rows else None) if one else rows
 
-# ------------------ Airtable Sync (optional) ------------------
-def push_to_airtable(variant_name, mte_value):
+# ------------------ Airtable Sync ------------------
+def push_to_airtable(variants, overall_mte):
+    """Push all variants + overall MTE to Airtable"""
     if not AIRTABLE_API_KEY or not AIRTABLE_API_URL:
-        print("⚠️ Airtable credentials not set.")
-        return
+        print("❌ Missing Airtable API key or URL.")
+        return False
 
     headers = {
         "Authorization": f"Bearer {AIRTABLE_API_KEY}",
         "Content-Type": "application/json"
     }
-    data = {"records": [{"fields": {"Variant": variant_name, "MTE": mte_value}}]}
+
+    # prepare records
+    records = [{"fields": {"Variant": v["variant_name"], "MTE": v["MTE"]}} for v in variants]
+
+    # ✅ Optionally also push total MTE as a special record
+    records.append({"fields": {"Variant": "Overall MTE", "MTE": overall_mte}})
+
+    payload = {"records": records}
+    print(f"📤 Sending data to Airtable: {AIRTABLE_API_URL}")
+
     try:
-        r = requests.post(AIRTABLE_API_URL, headers=headers, json=data, timeout=10)
-        print(f"✅ Pushed to Airtable: {variant_name} = {mte_value} ({r.status_code})")
+        response = requests.post(AIRTABLE_API_URL, headers=headers, json=payload, timeout=10)
+        print(f"📥 Airtable Response: {response.status_code} {response.text}")
+        return response.status_code in [200, 201]
     except Exception as e:
-        print(f"❌ Airtable sync failed: {e}")
+        print(f"❌ Airtable sync error: {e}")
+        return False
 
 # ------------------ Setup DB from Excel ------------------
 def setup_database():
@@ -74,99 +86,47 @@ def setup_database():
 setup_database()
 
 # ------------------ API Endpoints ------------------
-@app.route("/modules")
-def get_modules():
-    rows = query_db("SELECT module_name FROM modules")
-    return jsonify([r["module_name"] for r in rows])
-
-@app.route("/models/<module_name>")
-def get_models(module_name):
-    rows = query_db("""
-        SELECT m.model_name
-        FROM models m
-        JOIN modules mo ON m.module_id = mo.module_id
-        WHERE LOWER(TRIM(mo.module_name))=LOWER(TRIM(?))
-    """, [module_name])
-    return jsonify([r["model_name"] for r in rows])
-
-@app.route("/variants/<model_name>")
-def get_variants(model_name):
-    rows = query_db("""
-        SELECT v.variant_name, v.MTE
-        FROM variants v
-        JOIN models m ON v.model_id = m.model_id
-        WHERE LOWER(TRIM(m.model_name))=LOWER(TRIM(?))
-    """, [model_name])
-    return jsonify([
-        {"variant_name": r["variant_name"], "MTE": float(r["MTE"])} for r in rows
-    ])
-
-@app.route("/calculate_mte", methods=["POST"])
+@app.route("/mte-calculate", methods=["POST"])
 def calculate_mte():
     data = request.get_json()
     variants = data.get("variants", [])
+
     if not variants:
-        return jsonify({"overall_mte": 0.0, "variants": []})
+        return jsonify({"error": "No variants provided"}), 400
 
-    placeholders = ",".join("?" * len(variants))
-    rows = query_db(f"""
-        SELECT v.variant_name, v.MTE
-        FROM variants v
-        WHERE LOWER(TRIM(v.variant_name)) IN ({placeholders})
-    """, [v.lower() for v in variants])
+    variant_names = [v.get("variant_name") for v in variants]
+    placeholders = ",".join("?" * len(variant_names))
+    rows = query_db(f"SELECT variant_name, MTE FROM variants WHERE variant_name IN ({placeholders})", variant_names)
 
-    total = sum(float(r["MTE"]) for r in rows)
-    variant_data = [
-        {"variant_name": r["variant_name"], "MTE": float(r["MTE"])} for r in rows
-    ]
+    total_mte = sum(float(r["MTE"]) for r in rows)
+    results = [{"variant_name": r["variant_name"], "MTE": float(r["MTE"])} for r in rows]
+    overall_mte = round(total_mte, 3)
 
-    # ---- Push each variant to Airtable ----
-    for r in rows:
-        push_to_airtable(r["variant_name"], float(r["MTE"]))
-
-    # ---- Also push overall MTE as one record ----
-    push_to_airtable("Overall MTE", total)
+    # Push automatically to Airtable (only Variant + MTE)
+    success = push_to_airtable(results, overall_mte)
 
     return jsonify({
-        "overall_mte": total,
-        "variants": variant_data
+        "overall_mte": overall_mte,
+        "variants": results,
+        "airtable_sync": "✅ Success" if success else "⚠️ Failed"
     })
-
-
-@app.route("/test_airtable")
-def test_airtable():
-    api_key = os.getenv("AIRTABLE_API_KEY")
-    api_url = os.getenv("AIRTABLE_API_URL")
-
-    if not api_key or not api_url:
-        return jsonify({"status": "error", "message": "Missing API key or URL"}), 500
-
-    headers = {"Authorization": f"Bearer {api_key}"}
-    try:
-        response = requests.get(api_url, headers=headers)
-        if response.status_code == 200:
-            return jsonify({"status": "success", "message": "Connected to Airtable!"})
-        else:
-            return jsonify({
-                "status": "error",
-                "message": f"Airtable returned {response.status_code}: {response.text}"
-            }), response.status_code
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
 
 # ------------------ Serve Frontend ------------------
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_frontend(path):
-    """Serve the frontend (index.html and assets)"""
     if path and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, "index.html")
 
-
 # ------------------ Main ------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+
+
+
+
+
+
 

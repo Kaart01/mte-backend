@@ -1,0 +1,83 @@
+body {
+  margin:0; padding:0;
+  font-family:'Roboto', Arial, sans-serif;
+  background:#e0e0e0;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  min-height:100vh;
+}
+.container {
+  width:390px; min-height:844px; 
+  margin-top:20px; padding:16px;
+  background:#fff; border-radius:28px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.2);
+  position:relative; overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+}
+h1 { text-align:center; color:#007bff; margin-bottom:16px; }
+
+/* INPUTS */
+.dropdown-wrapper { position:relative; margin:10px 0; }
+.dropdown {
+  width:100%; padding:8px 5px;
+  border-radius:12px; border:1px solid #007bff;
+  font-size:1rem; color:#007bff; font-weight:bold;
+  text-align:center;
+}
+.dropdown:disabled { background:#f5f5f5; color:#999; }
+
+/* DROPDOWN LIST */
+.list {
+  position:absolute; top:100%; left:0; width:100%;
+  max-height:140px; overflow-y:auto;
+  background:#fff; border:1px solid #007bff;
+  border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  display:none; z-index:1000;
+}
+.list div { padding:6px 10px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.list div:hover { background:#007bff; color:#fff; }
+.list div:active { background: rgba(0,123,255,0.3); }
+
+/* CHIPS */
+.chips-container { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; }
+.chip { background:#007bff; color:#fff; padding:6px 12px; border-radius:20px; display:flex; align-items:center; font-size:0.9rem; touch-action: pan-x; }
+.chip span { margin-left:8px; cursor:pointer; font-weight:bold; }
+
+/* BUTTONS */
+button {
+  width:100%; padding:12px; margin:8px 0;
+  background:#007bff; color:#fff; border:none; border-radius:12px; font-weight:bold;
+  font-size:1rem; cursor:pointer;
+}
+button:hover { opacity:0.9; }
+button:active { background: rgba(0,123,255,0.3); }
+
+/* MTE DISPLAY */
+.mte-display { text-align:center; margin-top:12px; color:#007bff; font-weight:bold; font-size:1.1rem; }
+.loading { font-style:italic; color:#555; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:6px; }
+.spinner {
+  border:3px solid #f3f3f3;
+  border-top:3px solid #007bff;
+  border-radius:50%;
+  width:16px; height:16px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+/* SWIPE ANIMATION FOR CHIPS */
+@keyframes swipeOut { 0% {transform:translateX(0);} 100% {transform:translateX(120%); opacity:0;} }
+
+
+
+
+
+
+
+
+
+
+
+
+
